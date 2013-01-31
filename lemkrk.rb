@@ -144,10 +144,17 @@ class Block
     @shape
   end
 
-  def work(mapp)
+  def work(game)
     xx = @x
     yy = @y
-    land = mapp.land
+    land = game.mapobj.land
+
+    @len.times do
+      if game.is_colliding_with_lemming? xx, yy 
+        return false
+      end
+    end
+
 
     @len.times do
 
@@ -182,7 +189,7 @@ class BlockGenerator
 end
 
 class LemKRK 
-	attr_reader :width, :height
+	attr_reader :width, :height, :mapobj
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
@@ -228,7 +235,7 @@ class LemKRK
 	end 
 
         def m_action
-          if @block.work(@mapobj)
+          if @block.work(self)
             @block = BlockGenerator.random_block
           end
         end
