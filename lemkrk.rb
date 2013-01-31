@@ -70,7 +70,7 @@ class Leming
 
 	def walk 
 		
-		if @map.is_empty? @x,@y+1
+		if empty_field? @x,@y+1
 			@old_dir = @direction unless @direction == :down
 			@direction = :down  
 		elsif @direction ==:down
@@ -150,10 +150,19 @@ class Block
     land = game.mapobj.land
 
     @len.times do
-      if game.is_colliding_with_lemming? xx, yy 
+      if game.is_colliding_with_lemming? xx, yy or land[yy][xx] == '@'
         return false
       end
+
+      if @vert
+        yy += 1
+      else
+        xx += 1
+      end
+
     end
+    xx = @x
+    yy = @y
 
 
     @len.times do
