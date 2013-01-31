@@ -1,0 +1,1 @@
+gem 'gaminator' , :git=> 'https://github.com/futuresimple/gaminator.git'
