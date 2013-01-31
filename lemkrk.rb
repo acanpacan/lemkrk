@@ -40,14 +40,24 @@ end
 class Block
   attr_accessor :x, :y
 
-  def initialize x,y,shape
+  def initialize x,y,vert,len
     @x = x
     @y = y
-    @shape = shape
+    text = "*" * len
+    if vert 
+      text = text.split('').map {|x| x}
+    else
+      text = [text]
+    end
+    @shape = text
   end
 
   def texture
     @shape
+  end
+
+  def work(map)
+    
   end
 end
 
@@ -56,14 +66,8 @@ class BlockGenerator
   def self.random_block
     len = rand(4) + 1
     vertical = rand(2) == 1
-    text = "*" * len
-    if vertical 
-      text = text.split('').map {|x| x}
-    else
-      text = [text]
-    end
-    
-    Block.new(0,0,text)
+
+    Block.new(0,0,vertical,len)
   end
 end
 
