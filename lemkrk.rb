@@ -2,14 +2,14 @@ require 'bundler/setup'
 require 'gaminator'
 
 class Map
-	attr_reader :x,:y,:land
+	attr_reader :x,:y,:land,:w,:h
 
 	def initialize w,h
 		@land = File.read('testmap.map').split("\n")
 		@x = 0 
 		@y = 0
 
-		@w = @land[0].length
+		@w = @land[0].strip.length
 		@h = @land.length
 	end 
 
@@ -18,7 +18,7 @@ class Map
 	end
 
 	def is_death_zone? x,y
-		x< 0 or y<0 or y>@h or x>@w 
+		x< 0 or y<0 or y>=@h or x>=@w 
 	end 
 
 
@@ -70,6 +70,11 @@ class Leming
 
 	def walk 
 		
+		if @map.is_death_zone? @x,@y+1 and @direction == :down
+			@direction =:killed
+			return
+		end
+
 		if empty_field? @x,@y+1
 			@old_dir = @direction unless @direction == :down
 			@direction = :down  
@@ -124,7 +129,7 @@ class Leming
 end
 
 class Block
-  attr_accessor :x, :y
+  attr_accessor :x, :y, :len, :vert
 
   def initialize x,y,vert,len
     @x = x
@@ -189,11 +194,11 @@ end
 
 class BlockGenerator
   
-  def self.random_block
+  def self.random_block x,y
     len = rand(4) + 1
     vertical = rand(2) == 1
 
-    Block.new(0,0,vertical,len)
+    Block.new(x,y,vertical,len)
   end
 end
 
@@ -203,7 +208,7 @@ class LemKRK
 	def initialize w,h 
 		@mapobj = Map.new w,h
 		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_RED,self) ]
-          @block = BlockGenerator.random_block
+          @block = BlockGenerator.random_block 1,1
           @exit_message = "ala"
 	end 
 
@@ -228,24 +233,47 @@ class LemKRK
 	end 
 
 	def m_left
-          @block.x = @block.x - 1
+	  if (@block.x > 1)
+            @block.x = @block.x - 1
+	  end
 	end 
 
 	def m_right
-          @block.x = @block.x + 1
+           @block.x = @block.x + 1
+	   if ((@block.len == 1) or @block.vert)
+	     right = @block.x
+           else 
+	     right = @block.x + @block.len - 1
+	   end
+	     
+	   if (right == (@mapobj.w-1))
+	     @block.x = @block.x - 1
+	   end
 	end 
 
-	def m_down 
-          @block.y = @block.y + 1
+	def m_down
+	  @block.y = @block.y + 1
+	  if ((@block.len == 1) or !@block.vert)
+	     down = @block.y
+           else 
+	     down = @block.y + @block.len - 1
+	   end
+	   
+	  if (down == (@mapobj.h-1))
+	     @block.y = (@block.y - 1)
+	  end
+          
 	end 
 
-	def m_up 
-          @block.y = @block.y - 1
+	def m_up
+  	  if @block.y > 1
+            @block.y = @block.y - 1
+	  end
 	end 
 
         def m_action
           if @block.work(self)
-            @block = BlockGenerator.random_block
+            @block = BlockGenerator.random_block @block.x, @block.y
           end
         end
 
@@ -259,11 +287,13 @@ class LemKRK
 	end 
 
 	def textbox_content
-		a =0 
+		a =0
+		k = 0
 		@lemmings.each do |l|
-			a=a+1 if l.direction != :rescued 
+			a= a+1 if l.direction != :rescued and l.direction != :killed
+			k = k+1 if l.direction == :killed
 		end 
-		"live "+a.to_s + "  rescued  " +(@lemmings.count - a).to_s
+		"live "+a.to_s()+ " killed "+k.to_s()+"  rescued  " +(@lemmings.count - a-k).to_s
 	end 
 
 	def wait? 
