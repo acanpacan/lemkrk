@@ -16,6 +16,10 @@ class Map
 		@land 
 	end
 
+	def is_death_zone? x,y
+		x< 0 or y<0 or y>@h or x>@w 
+	end 
+
 
 	def is_empty? x,y
 		unless  x >= @w ||  y>=@h
@@ -37,7 +41,8 @@ end
 class Leming
 	attr_reader :x,:y, :direction, :old_dir
 
-	def initialize x,y, map, color 
+	def initialize x,y, map, color, game
+		@game = game
 		@map = map 
 		@x = x 
 		@y = y
@@ -54,7 +59,15 @@ class Leming
 		@color
 	end
 
-	def work 
+	def is_alive?
+		@direction!=:rescued && @direction!=:killed
+	end
+
+	def work
+		walk unless @direction == :killed 
+	end 
+
+	def walk 
 		
 		if @map.is_empty? @x,@y+1
 			@old_dir = @direction unless @direction == :down
@@ -64,6 +77,11 @@ class Leming
 		end 
 
 		r = get_next_field
+		
+		if @map.is_death_zone? r[0],r[1]
+			@direction =:killed
+		end 
+
 		if empty_field?(r[0],r[1])
 			@x = r[0]
 			@y = r[1]
@@ -72,13 +90,13 @@ class Leming
 		end 
 
 		if @map.is_exit? @x,@y
-			@direction = :stopped
+			@direction = :rescued
 		end 
 
 	end 
 
 	def empty_field? x,y
-		@map.is_empty? x,y
+		@map.is_empty?(x,y) and !@game.is_colliding_with_lemming?(x,y)
 	end 
 
 	def change_dir
@@ -109,12 +127,12 @@ class LemKRK
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
-		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN ), Leming.new(8,1,@mapobj,Curses::COLOR_RED) ]
+		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_RED,self) ]
 	end 
 
 	def objects
 		
-		[@mapobj, @lemmings.filter {|x| x.direction!=:stopped}].flatten!
+		[@mapobj, @lemmings.select {|x| x.is_alive?}].flatten!
 	end
 
 	def input_map 
@@ -154,7 +172,11 @@ class LemKRK
 	end 
 
 	def textbox_content
-		'test'
+		a =0 
+		@lemmings.each do |l|
+			a=a+1 if l.direction != :rescued 
+		end 
+		"live "+a.to_s + "  rescued  " +(@lemmings.count - a).to_s
 	end 
 
 	def wait? 
@@ -165,14 +187,19 @@ class LemKRK
 		1.0/10.0 
 	end 
 
-
-
 	def process_lemmings 
 
 		@lemmings.each do |l| 
 			l.work
 		end 
+	end 
 
+	def is_colliding_with_lemming? x,y
+		res = false 
+		@lemmings.each do |l|
+			res = true if l.x == x and l.y==y and l.is_alive?
+		end 
+		res
 	end 
 end 
 
