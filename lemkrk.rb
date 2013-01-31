@@ -95,7 +95,8 @@ class Leming
 			change_dir 
 		end 
 
-		if @map.is_exit? @x,@y
+		if @map.is_exit? @x,@y 
+			@game.add_blood(@x,@y) if @direction != :rescued
 			@direction = :rescued
 		end 
 
@@ -192,6 +193,49 @@ class Block
 
 end
 
+class Blood
+	attr_accessor :x, :y, :state
+	
+	def initialize x,y
+		@x = x
+		@y = y
+		@state = -1
+	end
+
+	def update
+		@state =@state +1		
+		if state == 1
+			@x=@x-1
+			@y=@y-1 
+		end 
+
+		if state == 2
+			@x=@x+1
+			@y=@y+1
+		end 
+		
+
+	end
+
+	def color
+		Curses::COLOR_RED
+	end
+
+
+	def texture
+		case @state
+			when 0
+				["x"]
+			when 1
+				[" X ","XXX"," X "]
+			when 2
+				["X"]
+			else 
+				[]
+		end
+	end
+end 
+
 class BlockGenerator
   
   def self.random_block x,y
@@ -207,13 +251,14 @@ class LemKRK
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
-		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_RED,self) ]
+		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_GREEN,self) ]
           @block = BlockGenerator.random_block 1,1
-          @exit_message = "ala"
+          @exit_message = "Thanks!"
+	  @blood =[]
 	end 
 
 	def objects
-		[@mapobj, @lemmings.select {|x| x.is_alive?}, @block].flatten!
+		[@mapobj, @lemmings.select {|x| x.is_alive?}, @block,@blood].flatten!
 	end
 
 	def input_map 
@@ -278,8 +323,14 @@ class LemKRK
         end
 
 
+	def add_blood x,y
+		@blood << Blood.new(x,y)  
+	end
 	def tick 
 		process_lemmings
+		@blood.each do |b|
+			b.update
+		end 
 	end 
 
 	def exit_message
@@ -293,7 +344,7 @@ class LemKRK
 			a= a+1 if l.direction != :rescued and l.direction != :killed
 			k = k+1 if l.direction == :killed
 		end 
-		"live "+a.to_s()+ " killed "+k.to_s()+"  rescued  " +(@lemmings.count - a-k).to_s
+		"live "+a.to_s()+ " killed "+k.to_s()+"  sacrificed  " +(@lemmings.count - a-k).to_s
 	end 
 
 	def wait? 
@@ -301,7 +352,7 @@ class LemKRK
 	end 
 
 	def sleep_time
-		1.0/10.0 
+		1.0/10.0
 	end 
 
 	def process_lemmings 
