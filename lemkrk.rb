@@ -7,6 +7,9 @@ class Map
 		@land = File.read('testmap.map').split("\n")
 		@x = 0 
 		@y = 0
+
+		@w = @land[0].length
+		@h = @land.length
 	end 
 
 	def texture
@@ -14,27 +17,91 @@ class Map
 	end
 
 
-	def is_empty? x,y 
+	def is_empty? x,y
+		unless  x >= @w ||  y>=@h
+			@land[y][x] == ' ' || @land[y][x] == '@'
+		end 
 	end 
 
 	def is_exit? x,y 
+		unless  x >= @w ||  y>=@h
+			@land[y][x] == '@' 
+		end
 	end 
+
 
 	def apply_block block 
 	end 
 end 
 
 class Leming
-	attr_reader :x,:y
+	attr_reader :x,:y, :direction, :old_dir
 
-	def initialize x,y
+	def initialize x,y, map, color 
+		@map = map 
 		@x = x 
 		@y = y
+		@direction = :right 
+		@old_dir = :right 
+		@color = color 
 	end 
 
 	def char
-		'|' 
+		'|'
 	end 
+
+	def color
+		@color
+	end
+
+	def work 
+		
+		if @map.is_empty? @x,@y+1
+			@old_dir = @direction unless @direction == :down
+			@direction = :down  
+		elsif @direction ==:down
+			@direction = @old_dir 
+		end 
+
+		r = get_next_field
+		if empty_field?(r[0],r[1])
+			@x = r[0]
+			@y = r[1]
+		else
+			change_dir 
+		end 
+
+		if @map.is_exit? @x,@y
+			@direction = :stopped
+		end 
+
+	end 
+
+	def empty_field? x,y
+		@map.is_empty? x,y
+	end 
+
+	def change_dir
+		case @direction
+			when :right
+				@direction = :left 
+			when :left 
+				@direction = :right
+		end 
+	end 
+
+	def get_next_field
+		case @direction
+			when :right
+				[@x+1, @y] 
+			when :left
+				[@x-1, @y] 
+			when :down
+				[@x, @y+1] 
+			else
+				[@x, @y]
+		end 
+	end
 end
 
 class LemKRK 
@@ -42,7 +109,7 @@ class LemKRK
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
-		@lemmings = [ Leming.new(2,1), Leming.new(4,1) ]
+		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN ), Leming.new(8,1,@mapobj,Curses::COLOR_RED) ]
 	end 
 
 	def objects
@@ -62,7 +129,7 @@ class LemKRK
 
 
 	def exit
-		Kernel.exit 
+		#Kernel.exit 
 	end 
 
 	def m_left 
@@ -79,6 +146,7 @@ class LemKRK
 
 
 	def tick 
+		process_lemmings
 	end 
 
 	def exit_message
@@ -90,11 +158,21 @@ class LemKRK
 	end 
 
 	def wait? 
-		true 
+		false 
 	end 
 
 	def sleep_time
-		1.0/60.0 
+		1.0/10.0 
+	end 
+
+
+
+	def process_lemmings 
+
+		@lemmings.each do |l| 
+			l.work
+		end 
+
 	end 
 end 
 
