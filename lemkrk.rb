@@ -150,6 +150,10 @@ class Block
     @shape
   end
 
+  def color
+	Curses::COLOR_YELLOW
+  end
+
   def work(game)
     xx = @x
     yy = @y
@@ -251,7 +255,7 @@ class LemKRK
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
-		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_GREEN,self) ]
+		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_GREEN,self), Leming.new(3,3,@mapobj,Curses::COLOR_GREEN,self), Leming.new(5,3,@mapobj,Curses::COLOR_GREEN,self) ]
           @block = BlockGenerator.random_block 1,1
           @exit_message = "Thanks!"
 	  @blood =[]
@@ -344,7 +348,7 @@ class LemKRK
 			a= a+1 if l.direction != :rescued and l.direction != :killed
 			k = k+1 if l.direction == :killed
 		end 
-		"live "+a.to_s()+ " killed "+k.to_s()+"  sacrificed  " +(@lemmings.count - a-k).to_s
+		@exit_message = "live "+a.to_s()+ " killed "+k.to_s()+"  sacrificed  " +(@lemmings.count - a-k).to_s
 	end 
 
 	def wait? 
