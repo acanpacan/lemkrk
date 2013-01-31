@@ -37,26 +37,56 @@ class Leming
 	end 
 end
 
+class Block
+  attr_accessor :x, :y
+
+  def initialize x,y,shape
+    @x = x
+    @y = y
+    @shape = shape
+  end
+
+  def texture
+    @shape
+  end
+end
+
+class BlockGenerator
+  
+  def self.random_block
+    len = rand(4) + 1
+    vertical = rand(2) == 1
+    text = "*" * len
+    if vertical 
+      text = text.split('').map {|x| x}
+    else
+      text = [text]
+    end
+    
+    Block.new(0,0,text)
+  end
+end
+
 class LemKRK 
 	attr_reader :width, :height
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
 		@lemmings = [ Leming.new(2,1), Leming.new(4,1) ]
+                @block = BlockGenerator.random_block
 	end 
 
 	def objects
-		
-		[@mapobj, @lemmings].flatten!
+		[@mapobj, @lemmings, @block].flatten!
 	end
 
 	def input_map 
 		{
-			?w => m_up, 
-			?s => m_down,
-			?a => m_left,
-			?d => m_right,
-			?q => exit
+			?w => :m_up, 
+			?s => :m_down,
+			?a => :m_left,
+			?d => :m_right,
+			?q => :exit
 		}
 	end 
 
@@ -65,16 +95,20 @@ class LemKRK
 		Kernel.exit 
 	end 
 
-	def m_left 
+	def m_left
+          @block.x = @block.x - 1
 	end 
 
 	def m_right
+          @block.x = @block.x + 1
 	end 
 
 	def m_down 
+          @block.y = @block.y + 1
 	end 
 
 	def m_up 
+          @block.y = @block.y - 1
 	end 
 
 
