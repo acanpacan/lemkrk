@@ -114,7 +114,7 @@ class LemKRK
 
 	def objects
 		
-		[@mapobj, @lemmings].flatten!
+		[@mapobj, @lemmings.filter {|x| x.direction!=:stopped}].flatten!
 	end
 
 	def input_map 
