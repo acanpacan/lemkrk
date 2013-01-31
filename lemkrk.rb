@@ -2,7 +2,8 @@ require 'bundler/setup'
 require 'gaminator'
 
 class Map
-	attr_reader :x,:y
+	attr_reader :x,:y,:land
+
 	def initialize w,h
 		@land = File.read('testmap.map').split("\n")
 		@x = 0 
@@ -33,7 +34,7 @@ class Leming
 	end 
 
 	def char
-		'|' 
+		'|'
 	end 
 end
 
@@ -43,7 +44,9 @@ class Block
   def initialize x,y,vert,len
     @x = x
     @y = y
+    @len = len
     text = "*" * len
+    @vert = vert
     if vert 
       text = text.split('').map {|x| x}
     else
@@ -56,9 +59,31 @@ class Block
     @shape
   end
 
-  def work(map)
-    
-  end
+  def work(mapp)
+    xx = @x
+    yy = @y
+    land = mapp.land
+
+    @len.times do
+
+      if (land[yy][xx] == '#')
+        if land[yy][xx] != '@'
+          land[yy][xx] = ' '
+        end
+      else
+        land[yy][xx] = '#'
+      end
+
+      if @vert
+        yy += 1
+      else
+        xx += 1
+      end
+    end
+
+    return true
+  end   
+
 end
 
 class BlockGenerator
@@ -77,7 +102,8 @@ class LemKRK
 	def initialize w,h 
 		@mapobj = Map.new w,h
 		@lemmings = [ Leming.new(2,1), Leming.new(4,1) ]
-                @block = BlockGenerator.random_block
+          @block = BlockGenerator.random_block
+          @exit_message = "ala"
 	end 
 
 	def objects
@@ -90,6 +116,7 @@ class LemKRK
 			?s => :m_down,
 			?a => :m_left,
 			?d => :m_right,
+                        ?k => :m_action,
 			?q => :exit
 		}
 	end 
@@ -115,12 +142,18 @@ class LemKRK
           @block.y = @block.y - 1
 	end 
 
+        def m_action
+          if @block.work(@mapobj)
+            @block = BlockGenerator.random_block
+          end
+        end
+
 
 	def tick 
 	end 
 
 	def exit_message
-		'ala ma kota 123' 
+	   @exit_message
 	end 
 
 	def textbox_content
