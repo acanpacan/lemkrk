@@ -17,6 +17,10 @@ class Map
 		@land 
 	end
 
+	def color
+		Curses::COLOR_MAGENTA
+	end
+
 	def is_death_zone? x,y
 		x< 0 or y<0 or y>=@h or x>=@w 
 	end 
@@ -130,7 +134,7 @@ class Leming
 end
 
 class Block
-  attr_accessor :x, :y, :len, :vert
+  attr_accessor :x, :y, :len, :vert, :colorr
 
   def initialize x,y,vert,len
     @x = x
@@ -144,6 +148,7 @@ class Block
       text = [text]
     end
     @shape = text
+    @colorr =Curses::COLOR_YELLOW 
   end
 
   def texture
@@ -151,7 +156,10 @@ class Block
   end
 
   def color
-	Curses::COLOR_YELLOW
+	r= @colorr
+	@colorr = Curses::COLOR_YELLOW if @colorr==Curses::COLOR_RED
+	r
+	
   end
 
   def work(game)
@@ -323,6 +331,9 @@ class LemKRK
         def m_action
           if @block.work(self)
             @block = BlockGenerator.random_block @block.x, @block.y
+	  else
+	    @block.colorr=Curses::COLOR_RED
+	  
           end
         end
 
