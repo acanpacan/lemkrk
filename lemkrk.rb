@@ -8,34 +8,119 @@ class Map
 		@land = File.read('testmap.map').split("\n")
 		@x = 0 
 		@y = 0
+
+		@w = @land[0].length
+		@h = @land.length
 	end 
 
 	def texture
 		@land 
 	end
 
+	def is_death_zone? x,y
+		x< 0 or y<0 or y>@h or x>@w 
+	end 
 
-	def is_empty? x,y 
+
+	def is_empty? x,y
+		unless  x >= @w ||  y>=@h
+			@land[y][x] == ' ' || @land[y][x] == '@'
+		end 
 	end 
 
 	def is_exit? x,y 
+		unless  x >= @w ||  y>=@h
+			@land[y][x] == '@' 
+		end
 	end 
+
 
 	def apply_block block 
 	end 
 end 
 
 class Leming
-	attr_reader :x,:y
+	attr_reader :x,:y, :direction, :old_dir
 
-	def initialize x,y
+	def initialize x,y, map, color, game
+		@game = game
+		@map = map 
 		@x = x 
 		@y = y
+		@direction = :right 
+		@old_dir = :right 
+		@color = color 
 	end 
 
 	def char
 		'|'
 	end 
+
+	def color
+		@color
+	end
+
+	def is_alive?
+		@direction!=:rescued && @direction!=:killed
+	end
+
+	def work
+		walk unless @direction == :killed 
+	end 
+
+	def walk 
+		
+		if @map.is_empty? @x,@y+1
+			@old_dir = @direction unless @direction == :down
+			@direction = :down  
+		elsif @direction ==:down
+			@direction = @old_dir 
+		end 
+
+		r = get_next_field
+		
+		if @map.is_death_zone? r[0],r[1]
+			@direction =:killed
+		end 
+
+		if empty_field?(r[0],r[1])
+			@x = r[0]
+			@y = r[1]
+		else
+			change_dir 
+		end 
+
+		if @map.is_exit? @x,@y
+			@direction = :rescued
+		end 
+
+	end 
+
+	def empty_field? x,y
+		@map.is_empty?(x,y) and !@game.is_colliding_with_lemming?(x,y)
+	end 
+
+	def change_dir
+		case @direction
+			when :right
+				@direction = :left 
+			when :left 
+				@direction = :right
+		end 
+	end 
+
+	def get_next_field
+		case @direction
+			when :right
+				[@x+1, @y] 
+			when :left
+				[@x-1, @y] 
+			when :down
+				[@x, @y+1] 
+			else
+				[@x, @y]
+		end 
+	end
 end
 
 class Block
@@ -101,13 +186,13 @@ class LemKRK
 
 	def initialize w,h 
 		@mapobj = Map.new w,h
-		@lemmings = [ Leming.new(2,1), Leming.new(4,1) ]
+		@lemmings = [ Leming.new(2,1,@mapobj,Curses::COLOR_GREEN,self),Leming.new(8,1,@mapobj,Curses::COLOR_RED,self) ]
           @block = BlockGenerator.random_block
           @exit_message = "ala"
 	end 
 
 	def objects
-		[@mapobj, @lemmings, @block].flatten!
+		[@mapobj, @lemmings.select {|x| x.is_alive?}, @block].flatten!
 	end
 
 	def input_map 
@@ -123,7 +208,7 @@ class LemKRK
 
 
 	def exit
-		Kernel.exit 
+          Kernel.exit 
 	end 
 
 	def m_left
@@ -150,6 +235,7 @@ class LemKRK
 
 
 	def tick 
+		process_lemmings
 	end 
 
 	def exit_message
@@ -157,15 +243,34 @@ class LemKRK
 	end 
 
 	def textbox_content
-		'test'
+		a =0 
+		@lemmings.each do |l|
+			a=a+1 if l.direction != :rescued 
+		end 
+		"live "+a.to_s + "  rescued  " +(@lemmings.count - a).to_s
 	end 
 
 	def wait? 
-		true 
+		false 
 	end 
 
 	def sleep_time
-		1.0/60.0 
+		1.0/10.0 
+	end 
+
+	def process_lemmings 
+
+		@lemmings.each do |l| 
+			l.work
+		end 
+	end 
+
+	def is_colliding_with_lemming? x,y
+		res = false 
+		@lemmings.each do |l|
+			res = true if l.x == x and l.y==y and l.is_alive?
+		end 
+		res
 	end 
 end 
 
